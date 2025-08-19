@@ -1,27 +1,21 @@
-# -------------------
-# Resource Group
-# -------------------
 resource "azurerm_resource_group" "rg" {
   name     = "rg-aravind-datavault"
-  location = "East US"
+  location = var.location
 
   tags = {
     environment = "dev"
-    owner       = "aravind"
+    owner       = var.owner_name
   }
 }
 
-# -------------------
-# Networking (VNet, Subnets, NSGs)
-# -------------------
 resource "azurerm_virtual_network" "vnet" {
   name                = "vnet-aravind-datavault"
-  location            = azurerm_resource_group.rg.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
   address_space       = ["10.10.0.0/20"]
 
   tags = {
-    owner = "aravind"
+    owner = var.owner_name
   }
 }
 
@@ -48,7 +42,7 @@ resource "azurerm_subnet" "hpc" {
 
 resource "azurerm_network_security_group" "nsg_backend" {
   name                = "nsg-backend"
-  location            = azurerm_resource_group.rg.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
 
   security_rule {
@@ -66,7 +60,7 @@ resource "azurerm_network_security_group" "nsg_backend" {
 
 resource "azurerm_network_security_group" "nsg_jumphost" {
   name                = "nsg-jumphost"
-  location            = azurerm_resource_group.rg.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
 
   security_rule {
@@ -92,13 +86,10 @@ resource "azurerm_subnet_network_security_group_association" "assoc_jumphost" {
   network_security_group_id = azurerm_network_security_group.nsg_jumphost.id
 }
 
-# -------------------
-# Storage Account
-# -------------------
 resource "azurerm_storage_account" "stg" {
   name                     = "stgaravinddatavault"
   resource_group_name      = azurerm_resource_group.rg.name
-  location                 = azurerm_resource_group.rg.location
+  location                 = var.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
   allow_nested_items_to_be_public = false
@@ -116,16 +107,15 @@ resource "azurerm_storage_account" "stg" {
   }
 
   tags = {
-    owner = "aravind"
+    owner = var.owner_name
   }
 }
 
-# -------------------
-# Key Vault
-# -------------------
+data "azurerm_client_config" "current" {}
+
 resource "azurerm_key_vault" "kv" {
   name                        = "kv-aravind-datavault"
-  location                    = azurerm_resource_group.rg.location
+  location                    = var.location
   resource_group_name         = azurerm_resource_group.rg.name
   tenant_id                   = data.azurerm_client_config.current.tenant_id
   sku_name                    = "standard"
@@ -134,13 +124,10 @@ resource "azurerm_key_vault" "kv" {
   enable_rbac_authorization   = true
 
   tags = {
-    owner = "aravind"
+    owner = var.owner_name
   }
 }
 
-# -------------------
-# Private Endpoints + DNS
-# -------------------
 resource "azurerm_private_dns_zone" "blob_dns" {
   name                = "privatelink.blob.core.windows.net"
   resource_group_name = azurerm_resource_group.rg.name
@@ -155,7 +142,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "blob_dns_link" {
 
 resource "azurerm_private_endpoint" "stg_endpoint" {
   name                = "stg-endpoint"
-  location            = azurerm_resource_group.rg.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
   subnet_id           = azurerm_subnet.backend.id
 
@@ -167,21 +154,9 @@ resource "azurerm_private_endpoint" "stg_endpoint" {
   }
 }
 
-resource "azurerm_private_dns_zone_group" "stg_dns_group" {
-  name                = "stg-dns-group"
-  private_endpoint_id = azurerm_private_endpoint.stg_endpoint.id
-
-  private_dns_zone_ids = [
-    azurerm_private_dns_zone.blob_dns.id
-  ]
-}
-
-# -------------------
-# Log Analytics + Diagnostics
-# -------------------
 resource "azurerm_log_analytics_workspace" "law" {
   name                = "law-aravind-datavault"
-  location            = azurerm_resource_group.rg.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
@@ -192,34 +167,19 @@ resource "azurerm_monitor_diagnostic_setting" "storage_diag" {
   target_resource_id         = azurerm_storage_account.stg.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
-  enabled_log {
-    category = "StorageRead"
-  }
-
-  enabled_log {
-    category = "StorageWrite"
-  }
-
-  enabled_log {
-    category = "StorageDelete"
-  }
-
-  enabled_metric {
+  metric {
     category = "Transaction"
+    enabled  = true
   }
 }
-
 
 resource "azurerm_monitor_diagnostic_setting" "kv_diag" {
   name                       = "diag-kv"
   target_resource_id         = azurerm_key_vault.kv.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
-  enabled_log {
-    category = "AuditEvent"
-  }
-
-  enabled_metric {
+  metric {
     category = "AllMetrics"
+    enabled  = true
   }
 }
