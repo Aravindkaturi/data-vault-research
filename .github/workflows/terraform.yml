@@ -1,47 +1,66 @@
-name: Terraform CI/CD
+name: Terraform Deploy
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Azure Login with Service Principal
-        run: |
-          az login --service-principal \
-            --username ${{ secrets.AZURE_CLIENT_ID }} \
-            --password ${{ secrets.AZURE_CLIENT_SECRET }} \
-            --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      # ------------------------------
+      # Authenticate to Azure
+      # ------------------------------
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-      - name: Delete old diagnostic settings if exist
+      # ------------------------------
+      # Delete old diagnostic settings (to avoid conflicts)
+      # ------------------------------
+      - name: Delete old diagnostic settings
         run: |
-          set +e
-          az monitor diagnostic-settings delete \
-            --name diag-storage \
-            --resource "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-aravind-datavault/providers/Microsoft.Storage/storageAccounts/stgaravinddatavault"
-          az monitor diagnostic-settings delete \
-            --name diag-kv \
-            --resource "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-aravind-datavault/providers/Microsoft.KeyVault/vaults/kv-aravind-datavault"
-          set -e
+          echo "Deleting old diagnostic settings if they exist..."
+          az monitor diagnostic-settings delete --name diag-storage \
+            --resource "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-aravind-datavault/providers/Microsoft.Storage/storageAccounts/stgaravinddatavault" || true
 
+          az monitor diagnostic-settings delete --name diag-kv \
+            --resource "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-aravind-datavault/providers/Microsoft.KeyVault/vaults/kv-aravind-datavault" || true
+
+      # ------------------------------
+      # Setup Terraform
+      # ------------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
 
+      # ------------------------------
+      # Terraform Init
+      # ------------------------------
       - name: Terraform Init
         run: terraform init -input=false
 
+      # ------------------------------
+      # Terraform Plan
+      # ------------------------------
       - name: Terraform Plan
         run: terraform plan -input=false
 
+      # ------------------------------
+      # Terraform Apply
+      # ------------------------------
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false
