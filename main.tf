@@ -196,16 +196,19 @@ resource "azurerm_log_analytics_workspace" "law" {
   retention_in_days   = 30
 }
 
+# Storage Account Diagnostic Setting
 resource "azurerm_monitor_diagnostic_setting" "storage_diag" {
-  name                       = "diag-storage"
+  name                       = "diag-storage" 
   target_resource_id         = azurerm_storage_account.stg.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
   enabled_metric {
     category = "Transaction"
+    enabled  = true
   }
 }
 
+# Key Vault Diagnostic Setting
 resource "azurerm_monitor_diagnostic_setting" "kv_diag" {
   name                       = "diag-kv"
   target_resource_id         = azurerm_key_vault.kv.id
@@ -213,5 +216,6 @@ resource "azurerm_monitor_diagnostic_setting" "kv_diag" {
 
   enabled_metric {
     category = "AllMetrics"
+    enabled  = true
   }
 }
