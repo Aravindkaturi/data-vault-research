@@ -163,7 +163,7 @@ resource "azurerm_log_analytics_workspace" "law" {
 }
 
 resource "azurerm_monitor_diagnostic_setting" "storage_diag" {
-  name                       = "diag-storage-tf"
+  name                       = "diag-storage-tftt"
   target_resource_id         = azurerm_storage_account.stg.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
@@ -174,7 +174,7 @@ resource "azurerm_monitor_diagnostic_setting" "storage_diag" {
 }
 
 resource "azurerm_monitor_diagnostic_setting" "kv_diag" {
-  name                       = "diag-kv-tf"
+  name                       = "diag-kv-tftt"
   target_resource_id         = azurerm_key_vault.kv.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
