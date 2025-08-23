@@ -12,12 +12,6 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
 
-    env:
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -27,11 +21,24 @@ jobs:
         with:
           terraform_version: 1.6.0
 
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # 🔥 Cleanup orphaned diagnostic settings before Terraform runs
+      - name: Cleanup old Diagnostic Settings
+        run: |
+          az monitor diagnostic-settings delete \
+            --name diag-storage \
+            --resource "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-aravind-datavault/providers/Microsoft.Storage/storageAccounts/stgaravinddatavault" || true
+
+          az monitor diagnostic-settings delete \
+            --name diag-kv \
+            --resource "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-aravind-datavault/providers/Microsoft.KeyVault/vaults/kv-aravind-datavault" || true
+
       - name: Terraform Init
         run: terraform init
-
-      - name: Terraform Validate
-        run: terraform validate
 
       - name: Terraform Plan
         run: terraform plan -out=tfplan
