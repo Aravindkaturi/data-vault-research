@@ -1,3 +1,18 @@
+# -------------------------------------------------
+# Backend Configuration (stores Terraform state in Azure)
+# -------------------------------------------------
+terraform {
+  backend "azurerm" {
+    resource_group_name   = "rg-aravind-tfstate"
+    storage_account_name  = "stgaravindtfstate01"
+    container_name        = "tfstate"
+    key                   = "terraform.tfstate"
+  }
+}
+
+# -------------------------------------------------
+# Resource Group
+# -------------------------------------------------
 resource "azurerm_resource_group" "rg" {
   name     = "rg-aravind-datavault"
   location = var.location
@@ -8,6 +23,9 @@ resource "azurerm_resource_group" "rg" {
   }
 }
 
+# -------------------------------------------------
+# Virtual Network & Subnets
+# -------------------------------------------------
 resource "azurerm_virtual_network" "vnet" {
   name                = "vnet-aravind-datavault"
   location            = var.location
@@ -40,6 +58,9 @@ resource "azurerm_subnet" "hpc" {
   address_prefixes     = ["10.10.2.0/24"]
 }
 
+# -------------------------------------------------
+# Network Security Groups
+# -------------------------------------------------
 resource "azurerm_network_security_group" "nsg_backend" {
   name                = "nsg-backend"
   location            = var.location
@@ -86,6 +107,9 @@ resource "azurerm_subnet_network_security_group_association" "assoc_jumphost" {
   network_security_group_id = azurerm_network_security_group.nsg_jumphost.id
 }
 
+# -------------------------------------------------
+# Storage Account
+# -------------------------------------------------
 resource "azurerm_storage_account" "stg" {
   name                     = "stgaravinddatavault"
   resource_group_name      = azurerm_resource_group.rg.name
@@ -111,6 +135,9 @@ resource "azurerm_storage_account" "stg" {
   }
 }
 
+# -------------------------------------------------
+# Key Vault
+# -------------------------------------------------
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "kv" {
@@ -128,6 +155,9 @@ resource "azurerm_key_vault" "kv" {
   }
 }
 
+# -------------------------------------------------
+# Private DNS & Private Endpoint
+# -------------------------------------------------
 resource "azurerm_private_dns_zone" "blob_dns" {
   name                = "privatelink.blob.core.windows.net"
   resource_group_name = azurerm_resource_group.rg.name
@@ -154,6 +184,9 @@ resource "azurerm_private_endpoint" "stg_endpoint" {
   }
 }
 
+# -------------------------------------------------
+# Log Analytics + Diagnostic Settings
+# -------------------------------------------------
 resource "azurerm_log_analytics_workspace" "law" {
   name                = "law-aravind-datavault"
   location            = var.location
