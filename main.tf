@@ -163,7 +163,7 @@ resource "azurerm_log_analytics_workspace" "law" {
 }
 
 resource "azurerm_monitor_diagnostic_setting" "storage_diag" {
-  name                       = "diag-storage"
+  name                       = "diag-storage-tf"
   target_resource_id         = azurerm_storage_account.stg.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
