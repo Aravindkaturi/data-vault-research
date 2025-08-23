@@ -31,7 +31,7 @@ jobs:
 
       # Init with backend config (picked from your main.tf/backend.tf)
       - name: Terraform Init
-        run: terraform init -input=false
+        run: terraform init
 
       # Validate Terraform code
       - name: Terraform Validate
