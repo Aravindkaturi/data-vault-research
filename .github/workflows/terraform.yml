@@ -21,6 +21,26 @@ jobs:
         with:
           terraform_version: 1.6.0
 
+      # 🔑 Login using individual secrets
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      # 🔥 Cleanup old diagnostic settings
+      - name: Cleanup old Diagnostic Settings
+        run: |
+          az monitor diagnostic-settings delete \
+            --name diag-storage \
+            --resource "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-aravind-datavault/providers/Microsoft.Storage/storageAccounts/stgaravinddatavault" || true
+
+          az monitor diagnostic-settings delete \
+            --name diag-kv \
+            --resource "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-aravind-datavault/providers/Microsoft.KeyVault/vaults/kv-aravind-datavault" || true
+
       - name: Terraform Init
         run: terraform init
 
