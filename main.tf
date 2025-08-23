@@ -174,7 +174,7 @@ resource "azurerm_monitor_diagnostic_setting" "storage_diag" {
 }
 
 resource "azurerm_monitor_diagnostic_setting" "kv_diag" {
-  name                       = "diag-kv"
+  name                       = "diag-kv-tf"
   target_resource_id         = azurerm_key_vault.kv.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
