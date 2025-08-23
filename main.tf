@@ -197,23 +197,21 @@ resource "azurerm_log_analytics_workspace" "law" {
 }
 
 resource "azurerm_monitor_diagnostic_setting" "storage_diag" {
-  name                       = "diag-storage-tftt"
+  name                       = "diag-storage"
   target_resource_id         = azurerm_storage_account.stg.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
-  metric {
+  enabled_metric {
     category = "Transaction"
-    enabled  = true
   }
 }
 
 resource "azurerm_monitor_diagnostic_setting" "kv_diag" {
-  name                       = "diag-kv-tftt"
+  name                       = "diag-kv"
   target_resource_id         = azurerm_key_vault.kv.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
-  metric {
+  enabled_metric {
     category = "AllMetrics"
-    enabled  = true
   }
 }
