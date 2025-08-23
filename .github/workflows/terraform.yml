@@ -1,4 +1,4 @@
-name: Terraform Deploy
+name: Terraform CI/CD
 
 on:
   push:
@@ -12,55 +12,29 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
 
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # ------------------------------
-      # Authenticate to Azure
-      # ------------------------------
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-
-      # ------------------------------
-      # Delete old diagnostic settings (to avoid conflicts)
-      # ------------------------------
-      - name: Delete old diagnostic settings
-        run: |
-          echo "Deleting old diagnostic settings if they exist..."
-          az monitor diagnostic-settings delete --name diag-storage \
-            --resource "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-aravind-datavault/providers/Microsoft.Storage/storageAccounts/stgaravinddatavault" || true
-
-          az monitor diagnostic-settings delete --name diag-kv \
-            --resource "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-aravind-datavault/providers/Microsoft.KeyVault/vaults/kv-aravind-datavault" || true
-
-      # ------------------------------
-      # Setup Terraform
-      # ------------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.6.6
+          terraform_version: 1.6.0
 
-      # ------------------------------
-      # Terraform Init
-      # ------------------------------
       - name: Terraform Init
-        run: terraform init -input=false
+        run: terraform init
 
-      # ------------------------------
-      # Terraform Plan
-      # ------------------------------
+      - name: Terraform Validate
+        run: terraform validate
+
       - name: Terraform Plan
-        run: terraform plan -input=false
+        run: terraform plan -out=tfplan
 
-      # ------------------------------
-      # Terraform Apply
-      # ------------------------------
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false
+        run: terraform apply -auto-approve tfplan
