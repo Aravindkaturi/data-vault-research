@@ -13,30 +13,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout repo
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.0
 
+      # Login to Azure using OIDC
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # Init with backend config (picked from your main.tf/backend.tf)
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -input=false
 
-      - name: Terraform Format
-        run: terraform fmt
-
+      # Validate Terraform code
       - name: Terraform Validate
         run: terraform validate
 
+      # Create execution plan
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
+      # Apply changes automatically
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
